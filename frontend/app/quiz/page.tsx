@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { ApiConfigError } from "@/components/ApiConfigError";
+import { getApiUrl } from "@/lib/api";
 
 type Question = {
   id: number;
@@ -17,8 +19,12 @@ export default function QuizPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
- const API_URL = process.env.NEXT_PUBLIC_API_URL
+  const API_URL = getApiUrl();
   useEffect(() => {
+    if (!API_URL) {
+      setLoading(false);
+      return;
+    }
     const token = localStorage.getItem("token");
     if (!token) { router.push("/login"); return; }
     fetch(`${API_URL}/quiz/questions`, {
@@ -27,7 +33,9 @@ export default function QuizPage() {
       .then((r) => r.json())
       .then((data) => { setQuestions(data); setLoading(false); })
       .catch(() => { setError("Could not load questions."); setLoading(false); });
-  }, []);
+  }, [API_URL, router]);
+
+  if (!API_URL) return <ApiConfigError />;
 
   const toggleOption = (idx: number) => {
     setSelected((prev) =>

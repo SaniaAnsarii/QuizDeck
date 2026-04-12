@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ApiConfigError } from "@/components/ApiConfigError";
+import { getApiUrl } from "@/lib/api";
 
 type DashboardData = {
   totalQuizzes: number;
@@ -21,9 +23,13 @@ export default function DashboardPage() {
   const [showAdminPrompt, setShowAdminPrompt] = useState(false);
   const [adminError, setAdminError] = useState("");
   const router = useRouter();
-   const API_URL = process.env.NEXT_PUBLIC_API_URL
+  const API_URL = getApiUrl();
 
   useEffect(() => {
+    if (!API_URL) {
+      setLoading(false);
+      return;
+    }
     const token = localStorage.getItem("token");
     if (!token) { router.push("/login"); return; }
     fetch(`${API_URL}/dashboard/`, {
@@ -32,7 +38,9 @@ export default function DashboardPage() {
       .then((r) => r.json())
       .then((d) => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
-  }, []);
+  }, [API_URL, router]);
+
+  if (!API_URL) return <ApiConfigError />;
 
   const handleAdminAccess = () => {
     if (adminInput === "#admin") {

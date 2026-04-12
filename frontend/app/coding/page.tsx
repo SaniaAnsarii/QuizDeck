@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { ApiConfigError } from "@/components/ApiConfigError";
+import { getApiUrl } from "@/lib/api";
 
 type CodingQuestion = {
   id: number;
@@ -25,7 +27,7 @@ const STARTERS: Record<string, string> = {
 };
 
 export default function CodingPage() {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL
+  const API_URL = getApiUrl();
   const [questions, setQuestions] = useState<CodingQuestion[]>([]);
   const [current, setCurrent] = useState(0);
   const [code, setCode] = useState(STARTERS["python"]);
@@ -40,13 +42,19 @@ export default function CodingPage() {
   const router = useRouter();
 
   useEffect(() => {
+    if (!API_URL) {
+      setLoading(false);
+      return;
+    }
     const token = localStorage.getItem("token");
     if (!token) { router.push("/login"); return; }
     fetch(`${API_URL}/quiz/coding-questions`)
       .then((r) => r.json())
       .then((data) => { setQuestions(data); setLoading(false); })
       .catch(() => { setError("Could not load problems."); setLoading(false); });
-  }, []);
+  }, [API_URL, router]);
+
+  if (!API_URL) return <ApiConfigError />;
 
   const handleLanguageChange = (lang: typeof LANGUAGES[0]) => {
     setLanguage(lang);

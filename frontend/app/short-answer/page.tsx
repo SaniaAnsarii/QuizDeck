@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { ApiConfigError } from "@/components/ApiConfigError";
+import { getApiUrl } from "@/lib/api";
 
 type ShortQuestion = {
   id: number;
@@ -24,15 +26,21 @@ export default function ShortAnswerPage() {
   const [finished, setFinished] = useState(false);
   const [scores, setScores] = useState<number[]>([]);
   const router = useRouter();
-const API_URL = process.env.NEXT_PUBLIC_API_URL
+  const API_URL = getApiUrl();
   useEffect(() => {
+    if (!API_URL) {
+      setLoading(false);
+      return;
+    }
     const token = localStorage.getItem("token");
     if (!token) { router.push("/login"); return; }
     fetch(`${API_URL}/quiz/short-questions`)
       .then((r) => r.json())
       .then((data) => { setQuestions(data); setLoading(false); })
       .catch(() => { setError("Could not load questions."); setLoading(false); });
-  }, []);
+  }, [API_URL, router]);
+
+  if (!API_URL) return <ApiConfigError />;
 
   const handleSubmit = async () => {
     if (!answer.trim()) return;

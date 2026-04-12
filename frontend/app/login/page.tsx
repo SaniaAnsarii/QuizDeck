@@ -1,6 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiUrlErrorMessage, getApiUrl } from "@/lib/api";
+
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -9,11 +11,19 @@ export default function AuthPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const router = useRouter();
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  const API_URL = getApiUrl();
+
+  useEffect(() => {
+    if (!API_URL) setError(apiUrlErrorMessage());
+  }, [API_URL]);
 
   const handleSubmit = async () => {
     setError("");
     setSuccess("");
+    if (!API_URL) {
+      setError(apiUrlErrorMessage());
+      return;
+    }
     setLoading(true);
     const endpoint = isLogin ? "/auth/login" : "/auth/register";
     try {
@@ -33,7 +43,9 @@ export default function AuthPage() {
         setIsLogin(true);
       }
     } catch {
-      setError("Cannot reach server. Is your backend running?");
+      setError(
+        "Cannot reach the API. If this is production, confirm NEXT_PUBLIC_API_URL points to your hosted FastAPI and CORS allows this site."
+      );
     } finally {
       setLoading(false);
     }

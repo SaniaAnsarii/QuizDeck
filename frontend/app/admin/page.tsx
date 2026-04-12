@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { ApiConfigError } from "@/components/ApiConfigError";
+import { getApiUrl } from "@/lib/api";
 
 type Tab = "mcq" | "short" | "coding";
 type ViewTab = "create" | "view";
@@ -37,7 +39,7 @@ export default function AdminPage() {
   const [codingDescription, setCodingDescription] = useState("");
   const [codingTestInput, setCodingTestInput] = useState("");
   const [codingExpectedOutput, setCodingExpectedOutput] = useState("");
-const API_URL = process.env.NEXT_PUBLIC_API_URL
+  const API_URL = getApiUrl();
   const notify = (msg: string, isError = false) => {
     if (isError) { setError(msg); setSuccess(""); }
     else { setSuccess(msg); setError(""); }
@@ -63,8 +65,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL
   };
 
   useEffect(() => {
-    if (viewTab === "view") fetchQuestions();
-  }, [viewTab, tab]);
+    if (!API_URL || viewTab !== "view") return;
+    fetchQuestions();
+  }, [viewTab, tab, API_URL]);
 
   const submitMCQ = async () => {
     if (!mcqQuestion || mcqOptions.some((o) => !o) || mcqAnswers.length === 0)
@@ -131,6 +134,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL
 
   const inputStyle = { backgroundColor: "#f9f7f5", borderColor: "#D8E2DC", color: "#3a2e45" };
   const inputClass = "w-full px-4 py-3 rounded-xl text-sm outline-none transition-all duration-200 border-2";
+
+  if (!API_URL) return <ApiConfigError />;
 
   return (
     <main className="min-h-screen px-4 py-12 relative overflow-hidden" style={{ backgroundColor: "#D8E2DC" }}>

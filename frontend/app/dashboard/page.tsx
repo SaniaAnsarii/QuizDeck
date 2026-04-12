@@ -22,6 +22,7 @@ export default function DashboardPage() {
   const [adminInput, setAdminInput] = useState("");
   const [showAdminPrompt, setShowAdminPrompt] = useState(false);
   const [adminError, setAdminError] = useState("");
+  const [loadError, setLoadError] = useState("");
   const router = useRouter();
   const API_URL = getApiUrl();
 
@@ -32,15 +33,47 @@ export default function DashboardPage() {
     }
     const token = localStorage.getItem("token");
     if (!token) { router.push("/login"); return; }
+    setLoadError("");
     fetch(`${API_URL}/dashboard/`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => r.json())
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then(async (r) => {
+        const body = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          const detail =
+            typeof (body as { detail?: unknown }).detail === "string"
+              ? (body as { detail: string }).detail
+              : `Request failed (${r.status})`;
+          throw new Error(detail);
+        }
+        return body as DashboardData;
+      })
+      .then((d) => {
+        setData({
+          totalQuizzes: Number(d.totalQuizzes) || 0,
+          averageScore: Number(d.averageScore) || 0,
+          weakTopics: Array.isArray(d.weakTopics) ? d.weakTopics : [],
+        });
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoadError("Could not load dashboard. Check API URL and CORS (backend must allow your Vercel domain).");
+        setLoading(false);
+      });
   }, [API_URL, router]);
 
   if (!API_URL) return <ApiConfigError />;
+
+  if (loadError) return (
+    <main className="flex min-h-screen items-center justify-center px-4" style={{ backgroundColor: "#D8E2DC" }}>
+      <div className="max-w-md rounded-2xl px-8 py-8 text-center shadow-lg" style={{ backgroundColor: "#fff" }}>
+        <p className="text-sm font-medium" style={{ color: "#7a2030" }}>{loadError}</p>
+        <button type="button" onClick={() => router.push("/login")}
+          className="mt-6 rounded-xl px-6 py-2 text-sm font-bold text-white"
+          style={{ backgroundColor: "#7E6B8F" }}>Back to Login</button>
+      </div>
+    </main>
+  );
 
   const handleAdminAccess = () => {
     if (adminInput === "#admin") {

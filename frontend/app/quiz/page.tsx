@@ -8,6 +8,7 @@ type Question = {
   id: number;
   question: string;
   options: string[];
+  correct_answers?: number[];
 };
 
 export default function QuizPage() {
@@ -30,9 +31,28 @@ export default function QuizPage() {
     fetch(`${API_URL}/quiz/questions`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => r.json())
-      .then((data) => { setQuestions(data); setLoading(false); })
-      .catch(() => { setError("Could not load questions."); setLoading(false); });
+      .then(async (r) => {
+        const data = await r.json().catch(() => null);
+        if (!r.ok) {
+          const detail =
+            data && typeof (data as { detail?: unknown }).detail === "string"
+              ? (data as { detail: string }).detail
+              : `Request failed (${r.status})`;
+          throw new Error(detail);
+        }
+        if (!Array.isArray(data)) {
+          throw new Error("Invalid response from server.");
+        }
+        return data as Question[];
+      })
+      .then((rows) => {
+        setQuestions(rows.filter((q) => q && Array.isArray(q.options)));
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Could not load questions. If this is production, set CORS on the API for your Vercel domain (see backend main.py).");
+        setLoading(false);
+      });
   }, [API_URL, router]);
 
   if (!API_URL) return <ApiConfigError />;
@@ -58,7 +78,7 @@ export default function QuizPage() {
     setSubmitting(true);
     const token = localStorage.getItem("token");
     try {
-      await fetch(`${API_URL}/quiz/submit`, {
+      const res = await fetch(`${API_URL}/quiz/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -66,9 +86,17 @@ export default function QuizPage() {
         },
         body: JSON.stringify({ answers: finalAnswers.map((a) => a[0] ?? 0) }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const detail =
+          typeof (data as { detail?: unknown }).detail === "string"
+            ? (data as { detail: string }).detail
+            : `Submit failed (${res.status})`;
+        throw new Error(detail);
+      }
       router.push("/dashboard");
     } catch {
-      setError("Submission failed. Try again.");
+      setError("Submission failed. If the API key or CORS is wrong on the server, fix Render env and redeploy.");
       setSubmitting(false);
     }
   };

@@ -1,0 +1,18 @@
+# env files
+frontend/.env.local
+frontend/.env
+.env
+*.env
+app/.env
+
+# python
+__pycache__/
+*.pyc
+venv/
+
+# node
+node_modules/
+
+# build
+dist/
+build/

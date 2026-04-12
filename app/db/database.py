@@ -1,13 +1,21 @@
+from pathlib import Path
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker,declarative_base
 
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+# Resolve `.env` from project root (folder that contains `app/`), not the shell cwd.
+_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(_ROOT / ".env")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL is missing. Add it to a `.env` file at: "
+        f"{_ROOT / '.env'} (same level as the `app` folder), then restart the server."
+    )
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)

@@ -1,12 +1,29 @@
+from pathlib import Path
 
 from groq import Groq
 
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(_ROOT / ".env")
 
 API_KEY = os.getenv("GROQ_API_KEY")
+_groq: Groq | None = None
+
+
+def _get_groq() -> Groq:
+    global _groq
+    if not API_KEY:
+        raise RuntimeError(
+            "GROQ_API_KEY is missing. Add it to your `.env` at: "
+            f"{_ROOT / '.env'}"
+        )
+    if _groq is None:
+        _groq = Groq(api_key=API_KEY)
+    return _groq
+
+
 def grade_answer(question: str, sample_answer: str, user_answer: str) -> dict:
     prompt = f"""
 You are a strict but fair interview coach grading a candidate's answer.
@@ -20,7 +37,7 @@ Reply ONLY in this exact format:
 SCORE: <number>
 FEEDBACK: <2-3 sentences of constructive feedback>
 """
-    response = client.chat.completions.create(
+    response = _get_groq().chat.completions.create(
         model="llama3-8b-8192",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=200,
@@ -50,7 +67,7 @@ Give them:
 
 Keep it concise, friendly, and actionable. Max 4 sentences total.
 """
-    response = client.chat.completions.create(
+    response = _get_groq().chat.completions.create(
         model="llama3-8b-8192",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=200,

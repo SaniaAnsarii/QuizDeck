@@ -2,11 +2,11 @@ from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker,declarative_base
-
+from sqlalchemy.pool import NullPool
 import os
 from dotenv import load_dotenv
 
-# Resolve `.env` from project root (folder that contains `app/`), not the shell cwd.
+
 _ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(_ROOT / ".env")
 
@@ -17,7 +17,7 @@ if not DATABASE_URL:
         f"{_ROOT / '.env'} (same level as the `app` folder), then restart the server."
     )
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(DATABASE_URL,poolclass=NullPool)
 SessionLocal = sessionmaker(bind=engine)
 
 Base = declarative_base()

@@ -26,42 +26,42 @@ export default function DashboardPage() {
   const router = useRouter();
   const API_URL = getApiUrl();
 
-  useEffect(() => {
-    if (!API_URL) {
-      setLoading(false);
-      return;
-    }
-    const token = localStorage.getItem("token");
-    if (!token) { router.push("/login"); return; }
-    setLoadError("");
-    fetch(`${API_URL}/dashboard/`, {
-      headers: { Authorization: `Bearer ${token}` },
+// eslint-disable-next-line react-hooks/exhaustive-deps
+ useEffect(() => {
+  if (!API_URL) return;
+  
+  const token = localStorage.getItem("token");
+  if (!token) { router.push("/login"); return; }
+  
+  setLoadError("");
+  
+  fetch(`${API_URL}/dashboard/`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+    .then(async (r) => {
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const detail =
+          typeof (body as { detail?: unknown }).detail === "string"
+            ? (body as { detail: string }).detail
+            : `Request failed (${r.status})`;
+        throw new Error(detail);
+      }
+      return body as DashboardData;
     })
-      .then(async (r) => {
-        const body = await r.json().catch(() => ({}));
-        if (!r.ok) {
-          const detail =
-            typeof (body as { detail?: unknown }).detail === "string"
-              ? (body as { detail: string }).detail
-              : `Request failed (${r.status})`;
-          throw new Error(detail);
-        }
-        return body as DashboardData;
-      })
-      .then((d) => {
-        setData({
-          totalQuizzes: Number(d.totalQuizzes) || 0,
-          averageScore: Number(d.averageScore) || 0,
-          weakTopics: Array.isArray(d.weakTopics) ? d.weakTopics : [],
-        });
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoadError("Could not load dashboard. Check API URL and CORS (backend must allow your Vercel domain).");
-        setLoading(false);
+    .then((d) => {
+      setData({
+        totalQuizzes: Number(d.totalQuizzes) || 0,
+        averageScore: Number(d.averageScore) || 0,
+        weakTopics: Array.isArray(d.weakTopics) ? d.weakTopics : [],
       });
-  }, [API_URL, router]);
-
+      setLoading(false);
+    })
+    .catch(() => {
+      setLoadError("Could not load dashboard. Check API URL and CORS.");
+      setLoading(false);
+    });
+}, [API_URL, router]);
   if (!API_URL) return <ApiConfigError />;
 
   if (loadError) return (
